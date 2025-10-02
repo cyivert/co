@@ -16,7 +16,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <signal.h>
 
 // Include the shared header file
 #include "shared.h"
@@ -46,6 +46,10 @@ char *clientToString(const Client *client);
 // FIFO Stream Functions
 int writestringToFIFO(const char *fifoname, const char *string);
 
+// Timeout functions
+void timeout_handler(int sig);
+void reset_timeout(void);
+
 int main(void) {
     char buffer[MAX_BUFFER_SIZE] = {0};   // Buffer for user input
     int  numberOfClients         = 0;     // Number of clients in current party
@@ -63,6 +67,10 @@ int main(void) {
     bool isValidAddress      = false;
 
     printf("Travel Agency Client Input\n");
+    
+    // Set up timeout handler for inactivity
+    signal(SIGALRM, timeout_handler);
+    alarm(120); // 2 minutes = 120 seconds
 
     do {
         // ---------- PARTY / STOP LOOP ----------
@@ -71,6 +79,9 @@ int main(void) {
             printInputError("Start/stop input", err, MAX_BUFFER_SIZE);
             continue;
         }
+        
+        // Reset timeout on user activity
+        reset_timeout();
 
         partyStarted = stringMatchesRegex(buffer, MAX_BUFFER_SIZE, "^party$");
         quitProgram  = stringMatchesRegex(buffer, MAX_BUFFER_SIZE, "^stop$");
@@ -127,6 +138,9 @@ int main(void) {
                 printInputError("Client/end input", err, MAX_BUFFER_SIZE);
                 continue;
             }
+            
+            // Reset timeout on user activity
+            reset_timeout();
 
             endOfClientList     = stringMatchesRegex(buffer, MAX_BUFFER_SIZE, "^end$");
             awaitingClientInput = stringMatchesRegex(buffer, MAX_BUFFER_SIZE, "^client$");
@@ -201,6 +215,29 @@ int main(void) {
 
     printf("Exiting the program...\n");
     return 0;
+}
+
+//
+// FUNCTION : timeout_handler
+// DESCRIPTION : Signal handler for SIGALRM. Terminates the client after timeout.
+// PARAMETERS : int sig - Signal number (SIGALRM)
+// RETURNS : n/a (exits program)
+//
+void timeout_handler(int sig) {
+    (void)sig; // Suppress unused parameter warning
+    printf("\n\nClient timeout: No activity for 2 minutes. Terminating client...\n");
+    exit(0);
+}
+
+//
+// FUNCTION : reset_timeout
+// DESCRIPTION : Resets the alarm timer to 2 minutes from current time.
+// PARAMETERS : n/a
+// RETURNS : n/a
+//
+void reset_timeout(void) {
+    alarm(0);   // Cancel current alarm
+    alarm(120); // Reset to 2 minutes (120 seconds)
 }
 
 // #####################################################################################################################
@@ -485,6 +522,9 @@ bool getInputFromClient(
 
     printf("%s: ", label);
     if ((err = getInputFromStream(stdin, buffer, bufSize, false)) == 0) {
+        // Reset timeout on successful input
+        reset_timeout();
+        
         if (destination) {
             snprintf(destination, bufSize, "%s", buffer);
         }
@@ -558,9 +598,9 @@ void splitClientName(
 
     // Copy first name
     // "%.*s" prints N chars -> N = firstNameLength, snprintf() null terminates
-    // by adding +1 to firstNameLength to account for null terminator (missing letters) - cy
+    // added +1 to firstNameLength to account for null terminator (missing letters) -cy
     //
-    snprintf(firstName, firstNameLength, "%.*s", firstNameLength, buffer);
+    snprintf(firstName, firstNameLength + 1, "%.*s", firstNameLength, buffer);
 
     // Copy last name
     snprintf(lastName, bufSize - firstNameLength - 1, "%s", spacePosition + 1);

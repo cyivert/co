@@ -7,15 +7,21 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
-
+#include <signal.h>
 
 #include "shared.h"
 
 void processMessages(const char *fifoname);
 void writeToLog(FILE *logFile, const char *message);
+void timeout_handler(int sig);
+void reset_timeout(void);
 
 int main(void) {
     printf("Travel Agency Server - Waiting for client data...\n");
+    
+    // Set up timeout handler for inactivity
+    signal(SIGALRM, timeout_handler);
+    alarm(120); // 2 minutes = 120 seconds
     
     // Create FIFO if it doesn't exist
     if (mkfifo(FIFO_PATH, PERM_OWNER_RW_ALL_R) == -1) {
@@ -67,6 +73,9 @@ void processMessages(const char *fifoname) {
         // Read message from FIFO
         ssize_t bytesRead = read(fd, buffer, sizeof(buffer) - 1);
         if (bytesRead > 0) {
+            // Reset timeout on activity
+            reset_timeout();
+            
             buffer[bytesRead] = '\0';
             
             // Remove trailing newline if present
@@ -146,4 +155,35 @@ void writeToLog(FILE *logFile, const char *message) {
         fprintf(logFile, "[%s] %s\n", timeStr ? timeStr : "Unknown time", message);
         fflush(logFile);
     }
+}
+
+//
+// FUNCTION : timeout_handler
+// DESCRIPTION : Signal handler for SIGALRM. Terminates the server after timeout.
+// PARAMETERS : int sig - Signal number (SIGALRM)
+// RETURNS : n/a (exits program)
+//
+void timeout_handler(int sig) {
+    (void)sig; // Suppress unused parameter warning
+    printf("\nServer timeout: No activity for 2 minutes. Terminating server...\n");
+    
+    // Log the timeout event
+    FILE *logFile = fopen("travel_agency.log", "a");
+    if (logFile) {
+        writeToLog(logFile, "Server terminated due to inactivity timeout (2 minutes)");
+        fclose(logFile);
+    }
+    
+    exit(0);
+}
+
+//
+// FUNCTION : reset_timeout
+// DESCRIPTION : Resets the alarm timer to 2 minutes from current time.
+// PARAMETERS : n/a
+// RETURNS : n/a
+//
+void reset_timeout(void) {
+    alarm(0);   // Cancel current alarm
+    alarm(120); // Reset to 2 minutes (120 seconds)
 }

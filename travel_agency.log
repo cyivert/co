@@ -20,3 +20,22 @@
 [Wed Oct  1 21:37:52 2025] stop
 [Wed Oct  1 21:37:52 2025] Server received stop command
 [Wed Oct  1 21:37:52 2025] Server stopped
+[Wed Oct  1 21:49:41 2025] Server started
+[Wed Oct  1 21:49:45 2025] party
+[Wed Oct  1 21:49:56 2025] Korea
+[Wed Oct  1 21:50:12 2025] Chea,Park,21,14 e213
+[Wed Oct  1 21:50:27 2025] Cy,Iver,22,14 e2123as
+[Wed Oct  1 21:50:29 2025] END_PARTY
+[Wed Oct  1 21:50:29 2025] Party completed - Destination: Korea, Clients: 2
+[Wed Oct  1 21:50:38 2025] party
+[Wed Oct  1 21:50:45 2025] Philippines
+[Wed Oct  1 21:50:56 2025] Ro,Re,18,32 Ree
+[Wed Oct  1 21:51:19 2025] Oey,Mumu,51,51 hialr
+[Wed Oct  1 21:51:21 2025] END_PARTY
+[Wed Oct  1 21:51:21 2025] Party completed - Destination: Philippines, Clients: 2
+[Wed Oct  1 21:52:24 2025] party
+[Wed Oct  1 21:52:27 2025] Korea
+[Wed Oct  1 21:52:49 2025] Koko,Ke,21,3141 Reas
+[Wed Oct  1 21:52:51 2025] END_PARTY
+[Wed Oct  1 21:52:51 2025] Party completed - Destination: Korea, Clients: 1
+[Wed Oct  1 22:00:11 2025] Server started
