@@ -558,7 +558,8 @@ void splitClientName(
 
     // Copy first name
     // "%.*s" prints N chars -> N = firstNameLength, snprintf() null terminates
-    // ---
+    // by adding +1 to firstNameLength to account for null terminator (missing letters) - cy
+    //
     snprintf(firstName, firstNameLength, "%.*s", firstNameLength, buffer);
 
     // Copy last name
