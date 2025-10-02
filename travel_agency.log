@@ -1,0 +1,22 @@
+[Wed Oct  1 21:22:43 2025] Server started
+[Wed Oct  1 21:24:05 2025] Server started
+[Wed Oct  1 21:24:05 2025] party
+[Wed Oct  1 21:24:34 2025] C,Iver,22,123 EEE
+[Wed Oct  1 21:25:54 2025] Tyle,Gee,18,33 River EE
+[Wed Oct  1 21:27:23 2025] Tha,Nguyen,44,This address
+[Wed Oct  1 21:29:19 2025] Server started
+[Wed Oct  1 21:31:21 2025] Server started
+[Wed Oct  1 21:31:27 2025] party
+[Wed Oct  1 21:31:33 2025] Philippines
+[Wed Oct  1 21:31:51 2025] Cy,Iver,22,123 REEE
+[Wed Oct  1 21:32:11 2025] END_PARTY
+[Wed Oct  1 21:32:11 2025] Party completed - Destination: Philippines, Clients: 1
+[Wed Oct  1 21:36:14 2025] Server started
+[Wed Oct  1 21:36:22 2025] party
+[Wed Oct  1 21:36:29 2025] Philippines
+[Wed Oct  1 21:36:40 2025] C,Iver,22,333 REEE
+[Wed Oct  1 21:36:42 2025] END_PARTY
+[Wed Oct  1 21:36:42 2025] Party completed - Destination: Philippines, Clients: 1
+[Wed Oct  1 21:37:52 2025] stop
+[Wed Oct  1 21:37:52 2025] Server received stop command
+[Wed Oct  1 21:37:52 2025] Server stopped
