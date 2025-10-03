@@ -23,6 +23,22 @@
 #define MAX_CLIENT_AGE      125
 #define MAX_CLIENTS         100
 
+// Constant return codes
+#define SUCCESS       0
+#define ERROR        -1
+
+// Constant for timeout duration (in seconds)
+#define TIMEOUT_DURATION 120
+#define CANCEL_TIMEOUT   0
+#define TIMEOUT_SUCCESSFUL 0
+
+// Constants for buffer size
+#define BUFFER_SIZE_OF_ZERO 0
+#define BUFFER_SIZE_OF_ONE 1
+#define BUFFER_SIZE_OF_TWO 2
+#define BUFFER_SIZE_OF_THREE 3
+#define BUFFER_SIZE_OF_FOUR 4
+
 // Define of Client struct
 typedef struct Client {
     char firstName[MAX_NAME_LEN];

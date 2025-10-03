@@ -9,7 +9,7 @@ SERVER_APPNAME = server
 # 	Source Directory
 SRCDIR	= src
 # 	Dependency Directory
-IDIR    = .
+IDIR    = inc
 # 	Object Directory
 OBJDIR  = obj
 # 	Executable Directory
@@ -21,6 +21,8 @@ EXECDIR = bin
 CLIENT_SRC	:= $(SRCDIR)/client.c
 # Server Source files
 SERVER_SRC  := $(SRCDIR)/server.c
+# Shared Header file
+SHARED_HDR  := $(IDIR)/shared.h
 # Client Object files
 CLIENT_OBJ  := $(OBJDIR)/client.o
 # Server Object files
@@ -78,13 +80,13 @@ $(OBJDIR) $(EXECDIR):
 	@$(ECHO_MKDIR)
 	@mkdir -p $@
 
-# Compile client.c -> obj/client.o (order-only prerequisite Ensures /obj exists)
-$(CLIENT_OBJ): $(CLIENT_SRC) | $(OBJDIR)
+# Compile client.c -> obj/client.o (depends on shared.h, order-only prerequisite Ensures /obj exists)
+$(CLIENT_OBJ): $(CLIENT_SRC) $(SHARED_HDR) | $(OBJDIR)
 	@$(ECHO_CLIENT_CC)
 	@$(CC) $(CFLAGS) -c $(CLIENT_SRC) -o $(CLIENT_OBJ)
 
-# Compile server.c -> obj/server.o (order-only prerequisite Ensures /obj exists)
-$(SERVER_OBJ): $(SERVER_SRC) | $(OBJDIR)
+# Compile server.c -> obj/server.o (depends on shared.h, order-only prerequisite Ensures /obj exists)
+$(SERVER_OBJ): $(SERVER_SRC) $(SHARED_HDR) | $(OBJDIR)
 	@$(ECHO_SERVER_CC)
 	@$(CC) $(CFLAGS) -c $(SERVER_SRC) -o $(SERVER_OBJ)
 

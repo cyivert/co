@@ -88,26 +88,26 @@ void processMessages(const char *fifoname) {
             writeToLog(logFile, buffer);
             
             // Process the message based on content
-            if (strcmp(buffer, "party") == 0) {
+            if (strcmp(buffer, "party") == SUCCESS) {
                 inParty = true;
                 clientCount = 0;
                 memset(destination, 0, sizeof(destination));
                 printf("New party started\n");
             }
-            else if (strcmp(buffer, "stop") == 0) {
+            else if (strcmp(buffer, "stop") == SUCCESS) {
                 printf("Stop command received. Shutting down server.\n");
                 writeToLog(logFile, "Server received stop command");
                 serverRunning = false;
             }
-            else if (inParty && strlen(destination) == 0) {
+            else if (inParty && strlen(destination) == SUCCESS) {
                 // First message after "party" should be destination
                 strncpy(destination, buffer, sizeof(destination) - 1);
                 printf("Party destination: %s\n", destination);
             }
-            else if (strcmp(buffer, "client") == 0) {
+            else if (strcmp(buffer, "client") == SUCCESS) {
                 printf("New client being added...\n");
             }
-            else if (strcmp(buffer, "END_PARTY") == 0 || strcmp(buffer, "end") == 0) {
+            else if (strcmp(buffer, "END_PARTY") == SUCCESS || strcmp(buffer, "end") == SUCCESS) {
                 if (inParty) {
                     printf("=== PARTY SUMMARY ===\n");
                     printf("Destination: %s\n", destination);
@@ -174,7 +174,7 @@ void timeout_handler(int sig) {
         fclose(logFile);
     }
     
-    exit(0);
+    exit(TIMEOUT_SUCCESSFUL);
 }
 
 //
@@ -184,6 +184,6 @@ void timeout_handler(int sig) {
 // RETURNS : n/a
 //
 void reset_timeout(void) {
-    alarm(0);   // Cancel current alarm
-    alarm(120); // Reset to 2 minutes (120 seconds)
+    alarm(CANCEL_TIMEOUT);   // Cancel current alarm
+    alarm(TIMEOUT_DURATION); // Reset to 2 minutes (120 seconds)
 }

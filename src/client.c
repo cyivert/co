@@ -100,19 +100,19 @@ int main(void) {
         // i enable party input loop
         // - cy
         // ---------- Start FIFO Stream ----------
-        if ((mkfifo(FIFO_PATH, PERM_ALL_RW)) == -1) {
+        if ((mkfifo(FIFO_PATH, PERM_ALL_RW)) == ERROR) {
             // FIFO might already exist, which is okay
             if (errno != EEXIST) {
                 printf("Could not create FIFO pipe.\n");
-                return -1;
+                return ERROR;
             }
         }
         printf("FIFO pipe ready.\n");
 
         // Write 'party' to FIFO
-        if (writestringToFIFO(FIFO_PATH, buffer) == -1) {
+        if (writestringToFIFO(FIFO_PATH, buffer) == ERROR) {
             printf("Error: Failed to write to FIFO\n");
-            return -1;
+            return ERROR;
         }
 
         // ---------- TRIP DATA INPUT BEGINS: DESTINATION ----------
@@ -121,9 +121,9 @@ int main(void) {
         } while (!isValidDestination);
 
         // Write destination to FIFO //
-        if (writestringToFIFO(FIFO_PATH, tripIfo.destination) == -1) {
+        if (writestringToFIFO(FIFO_PATH, tripIfo.destination) == ERROR) {
             printf("Error: Failed to write to FIFO\n");
-            return -1;
+            return ERROR;
         }
 
         numberOfClients = 0;
@@ -134,7 +134,7 @@ int main(void) {
                 "\nEnter 'client' to add a client or 'end' to finish the "
                 "party: "
             );
-            if ((err = getInputFromStream(stdin, buffer, MAX_BUFFER_SIZE, false)) != 0) {
+            if ((err = getInputFromStream(stdin, buffer, MAX_BUFFER_SIZE, false)) != SUCCESS) {
                 printInputError("Client/end input", err, MAX_BUFFER_SIZE);
                 continue;
             }
@@ -153,9 +153,9 @@ int main(void) {
                 
                 // Write "end" signal to indicate party completion
                 // this is just to signal the server that the party is over - cy
-                if (writestringToFIFO(FIFO_PATH, "END_PARTY") == -1) {
+                if (writestringToFIFO(FIFO_PATH, "END_PARTY") == ERROR) {
                     printf("Error: Failed to write end signal to FIFO\n");
-                    return -1;
+                    return ERROR;
                 }
                 
                 break;   // back to party/stop
@@ -187,12 +187,12 @@ int main(void) {
             // check if client string allocation failed
             if (!clientString) {
                 printf("Error: Failed to allocate memory for client string\n");
-                return -1;
+                return ERROR;
             } else {
                 // Write client string to FIFO
-                if (writestringToFIFO(FIFO_PATH, clientString) == -1) {
+                if (writestringToFIFO(FIFO_PATH, clientString) == ERROR) {
                     printf("Error: Failed to write to FIFO\n");
-                    return -1;
+                    return ERROR;
                 }
 
                 // free client string
@@ -214,7 +214,7 @@ int main(void) {
     } while (!quitProgram);
 
     printf("Exiting the program...\n");
-    return 0;
+    return SUCCESS;
 }
 
 //
@@ -226,7 +226,7 @@ int main(void) {
 void timeout_handler(int sig) {
     (void)sig; // Suppress unused parameter warning
     printf("\n\nClient timeout: No activity for 2 minutes. Terminating client...\n");
-    exit(0);
+    exit(TIMEOUT_SUCCESSFUL);
 }
 
 //
@@ -236,8 +236,8 @@ void timeout_handler(int sig) {
 // RETURNS : n/a
 //
 void reset_timeout(void) {
-    alarm(0);   // Cancel current alarm
-    alarm(120); // Reset to 2 minutes (120 seconds)
+    alarm(CANCEL_TIMEOUT);   // Cancel current alarm
+    alarm(TIMEOUT_DURATION); // Reset to 2 minutes (120 seconds)
 }
 
 // #####################################################################################################################
@@ -303,7 +303,7 @@ int getInputFromStream(
     FILE *stream, char *destination, size_t bufSize, bool keepNewline
 ) {
     // validate input parameters
-    if (!stream || !destination || bufSize < 2) {
+    if (!stream || !destination || bufSize < BUFFER_SIZE_OF_TWO) {
         return EINVAL;   // Must be at least 1 char + null terminator
     }
 
@@ -319,16 +319,16 @@ int getInputFromStream(
     size_t len = strlen(destination);
 
     // Reject empty input or input that is just a newline
-    if (len == 0 || (len == 1 && destination[0] == '\n')) {
+    if (len == BUFFER_SIZE_OF_ZERO || (len == BUFFER_SIZE_OF_ONE && destination[0] == '\n')) {
         return EINVAL;   // empty input
     }
 
-    bool bufferFull        = (len == bufSize - 1);
-    bool lastCharIsNewline = (destination[len - 1] == '\n');
+    bool bufferFull        = (len == bufSize - BUFFER_SIZE_OF_ONE);
+    bool lastCharIsNewline = (destination[len - BUFFER_SIZE_OF_ONE] == '\n');
 
     // Remove the newline if keepNewline flag is false
     if (!keepNewline && lastCharIsNewline) {
-        destination[len - 1] = '\0';
+        destination[len - BUFFER_SIZE_OF_ONE] = '\0';
         len--;   // adjust length for consistency
     }
 
@@ -367,7 +367,7 @@ void printInputError(const char *fieldName, int errorCode, size_t bufSize) {
         printf(
             "Invalid %s input - Exceeded maximum input length of %zu "
             "characters.\n",
-            fieldName, bufSize - 1
+            fieldName, bufSize - BUFFER_SIZE_OF_ONE
         );
     } else {   // Unknown error code
         printf("An unknown error occurred while reading input.\n");
@@ -390,7 +390,7 @@ void printInputError(const char *fieldName, int errorCode, size_t bufSize) {
  *   false: No null terminator was found.
  */
 bool isNullTerminated(const char *buffer, size_t bufSize) {
-    if (!buffer || bufSize == 0) {   // Invalid input
+    if (!buffer || bufSize == BUFFER_SIZE_OF_ZERO) {   // Invalid input
         return false;
     }
 
@@ -419,7 +419,7 @@ bool isNullTerminated(const char *buffer, size_t bufSize) {
  *
  */
 bool stringMatchesRegex(const char *string, size_t bufSize, const char *pattern) {
-    if (!string || !pattern || bufSize <= 0) {   // invalid input parameters
+    if (!string || !pattern || bufSize <= BUFFER_SIZE_OF_ZERO) {   // invalid input parameters
         return false;
     }
 
@@ -428,7 +428,7 @@ bool stringMatchesRegex(const char *string, size_t bufSize, const char *pattern)
     }
 
     size_t length = strlen(string);
-    if (length == 0 || length > (bufSize - 1)) {
+    if (length == 0 || length > (bufSize - BUFFER_SIZE_OF_ONE)) {
         return false;
     }
 
@@ -436,7 +436,7 @@ bool stringMatchesRegex(const char *string, size_t bufSize, const char *pattern)
     regex_t regex;
 
     // REG_EXTENDED allows  +, *, ^, $, etc.
-    if (regcomp(&regex, pattern, REG_EXTENDED) != 0) {
+    if (regcomp(&regex, pattern, REG_EXTENDED) != SUCCESS) {
         return false;   // Regex could not be compiled.
     }
 
@@ -444,7 +444,7 @@ bool stringMatchesRegex(const char *string, size_t bufSize, const char *pattern)
     int result = regexec(&regex, string, 0, NULL, 0);
     regfree(&regex);   // Free the compiled regular expression.
 
-    return result == 0;
+    return result == SUCCESS;
 #else
     return false;   // No regular expression support on this platform
 #endif
@@ -521,7 +521,7 @@ bool getInputFromClient(
     int err = 0;
 
     printf("%s: ", label);
-    if ((err = getInputFromStream(stdin, buffer, bufSize, false)) == 0) {
+    if ((err = getInputFromStream(stdin, buffer, bufSize, false)) == SUCCESS) {
         // Reset timeout on successful input
         reset_timeout();
         
@@ -662,7 +662,7 @@ bool getClientName(char *firstName, char *lastName) {
  *  false: An error occurred/was found during input validation and/or conversion
  */
 bool getClientAge(int *age) {
-    const size_t bufSize = 4;   // Max age is 3 characters + null terminator
+    const size_t bufSize = BUFFER_SIZE_OF_FOUR;   // Max age is 3 characters + null terminator
     char         buffer[bufSize];
 
     // age cannot be NULL
@@ -730,8 +730,8 @@ bool getClientAddress(char *address) {
  *
  */
 char *clientToString(const Client *client) {
-    if (!client || strlen(client->firstName) == 0 || strlen(client->lastName) == 0
-        || strlen(client->address) == 0 || client->age <= 0) {
+    if (!client || strlen(client->firstName) == BUFFER_SIZE_OF_ZERO || strlen(client->lastName) == BUFFER_SIZE_OF_ZERO
+        || strlen(client->address) == BUFFER_SIZE_OF_ZERO || client->age <= BUFFER_SIZE_OF_ZERO) {
         return NULL;
     }
     // (*__stream = NULL, * __n = 0) -> snprint calculates characters count
@@ -762,7 +762,7 @@ int writestringToFIFO(const char *fifoname, const char *string) {
     int fd = open(fifoname, O_WRONLY);
     if (fd == -1) {   // Check for error
         perror("Error opening FIFO stream for writing");
-        return -1;
+        return ERROR;
     }
 
     // Write string plus newline to FIFO
@@ -771,21 +771,21 @@ int writestringToFIFO(const char *fifoname, const char *string) {
     if (!buffer) {
         perror("Memory allocation failed");
         close(fd);
-        return -1;
+        return ERROR;
     }
-    
+
     snprintf(buffer, len + 2, "%s\n", string);
-    
+
     ssize_t bytesWritten = write(fd, buffer, len + 1);
-    if (bytesWritten == -1) {   // Check for error
+    if (bytesWritten == ERROR) {   // Check for error
         perror("Error writing to FIFO stream");
         free(buffer);
         close(fd);
-        return -1;
+        return ERROR;
     }
     
     printf("Sent to server: %s\n", string);
     free(buffer);
     close(fd);   // close fifo
-    return 0;        // success
+    return SUCCESS;        // success
 }
