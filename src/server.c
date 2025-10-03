@@ -1,3 +1,13 @@
+/*
+ * FILE: client.c
+ * PROGRAMMER: Tyler Gee, Cy Iver Torrefranca, Tuan Thanh Nguyen, George S.
+ * PROJECT: SENG2031 - Assignment 1
+ * FIRST VERSION: 2025-09-27
+ * DESCRIPTION:
+ * The client program collects trip and client data from the user,
+ * then it validates the input, and sends it to the server via a FIFO.
+*/
+
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -21,7 +31,7 @@ int main(void) {
     
     // Set up timeout handler for inactivity
     signal(SIGALRM, timeout_handler);
-    alarm(120); // 2 minutes = 120 seconds
+    alarm(TIMEOUT_DURATION); // 2 minutes = 120 seconds
     
     // Create FIFO if it doesn't exist
     if (mkfifo(FIFO_PATH, PERM_OWNER_RW_ALL_R) == -1) {
@@ -38,14 +48,16 @@ int main(void) {
     return 0;
 }
 
-//
-// FUNCTION : processMessages
-// DESCRIPTION : Processes messages from the FIFO, handling party and client data,
-//               and logging activities to a log file.
-// PARAMETERS : 
-// const char *fifoname : Path to the FIFO to read messages from.
-// RETURNS : n/a
-//
+/*
+ * FUNCTION: processMessages
+ * PROGRAMMER: Cy Iver Torrefranca & Tuan Thanh Nguyen
+ * DESCRIPTION:
+    *  Processes messages from the FIFO, handling party and client data,
+    *  and logging activities to a log file.
+ * PARAMETERS:
+    *  const char *fifoname : Path to the FIFO to read messages from.
+ * RETURNS : n/a
+ */
 void processMessages(const char *fifoname) {
     FILE *logFile = fopen("travel_agency.log", "a");
     if (!logFile) {
@@ -74,6 +86,7 @@ void processMessages(const char *fifoname) {
             perror("Error opening FIFO for reading");
             break;
         }
+        printf("Client connected.\n");
         
         // Read message from FIFO
         ssize_t bytesRead = read(fd, buffer, sizeof(buffer) - 1);
@@ -119,7 +132,7 @@ void processMessages(const char *fifoname) {
                     printf("Number of clients: %d\n", clientCount);
                     printf("====================\n\n");
                     
-                    char summary[512];
+                    char summary[SUMMARY_SIZE]; // Tuan Thanh Nguyen
                     snprintf(summary, sizeof(summary), "Party completed - Destination: %s, Clients: %d", 
                             destination, clientCount);
                     writeToLog(logFile, summary);
@@ -129,7 +142,40 @@ void processMessages(const char *fifoname) {
             else if (inParty && strchr(buffer, ',') != NULL) {
                 // This looks like client data (contains commas)
                 clientCount++;
-                printf("Client %d: %s\n", clientCount, buffer);
+                // Parse client data: "FirstName,LastName,Age,Address"
+                char firstName[MAX_NAME_LEN] = {0};
+                char lastName[MAX_NAME_LEN] = {0};
+                char ageStr[MAX_AGE_STR_LEN] = {0};
+                char address[MAX_ADDRESS_LEN] = {0};
+                char temp[MAX_BUFFER_SIZE];
+                strncpy(temp, buffer, sizeof(temp)-1);
+                temp[sizeof(temp)-1] = '\0';
+                char *token = strtok(temp, ",");
+                if (token) {
+                    strncpy(firstName, token, sizeof(firstName)-1);
+                    firstName[sizeof(firstName)-1] = '\0';
+                    token = strtok(NULL, ",");
+                }
+                if (token) {
+                    strncpy(lastName, token, sizeof(lastName)-1);
+                    lastName[sizeof(lastName)-1] = '\0';
+                    token = strtok(NULL, ",");
+                }
+                if (token) {
+                    strncpy(ageStr, token, sizeof(ageStr)-1);
+                    ageStr[sizeof(ageStr)-1] = '\0';
+                    token = strtok(NULL, "");
+                }
+                if (token) {
+                    strncpy(address, token, sizeof(address)-1);
+                    address[sizeof(address)-1] = '\0';
+                }
+                printf("\n-----------------------------\n");
+                printf("Client %d\n", clientCount);
+                printf("Name    : %s %s\n", firstName, lastName);
+                printf("Age     : %s\n", ageStr);
+                printf("Address : %s\n", address);
+                printf("-----------------------------\n\n");
             }
         }
         
@@ -140,14 +186,17 @@ void processMessages(const char *fifoname) {
     fclose(logFile);
 }
 
-//
-// FUNCTION : writeToLog
-// DESCRIPTION : Writes a message to the log file with a timestamp.
-// PARAMETERS :
-// FILE *logFile : Pointer to the opened log file.
-// const char *message : Message to log.
-// RETURNS : n/a
-//
+/*
+
+ * FUNCTION: writeToLog
+ * PROGRAMMER: Cy Iver Torrefranca & Tuan Thanh Nguyen
+ * DESCRIPTION: Writes a message to the log file with a timestamp.
+ * PARAMETERS:
+    *  FILE *logFile : Pointer to the opened log file.
+    *  const char *message : Message to log.
+ * RETURNS : n/a
+
+ */
 void writeToLog(FILE *logFile, const char *message) {
     if (logFile) {
         time_t now;
@@ -162,12 +211,15 @@ void writeToLog(FILE *logFile, const char *message) {
     }
 }
 
-//
-// FUNCTION : timeout_handler
-// DESCRIPTION : Signal handler for SIGALRM. Terminates the server after timeout.
-// PARAMETERS : int sig - Signal number (SIGALRM)
-// RETURNS : n/a (exits program)
-//
+/*
+
+ * FUNCTION: timeout_handler
+ * PROGRAMMER: Cy Iver Torrefranca
+ * DESCRIPTION: Signal handler for SIGALRM. Terminates the server after timeout.
+ * PARAMETERS: 
+    * int sig - Signal number (SIGALRM)
+ * RETURNS: n/a (exits program)
+ */
 void timeout_handler(int sig) {
     (void)sig; // Suppress unused parameter warning
     printf("\nServer timeout: No activity for 2 minutes. Terminating server...\n");

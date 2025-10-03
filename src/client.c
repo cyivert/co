@@ -1,9 +1,11 @@
 /*
  * FILE: client.c
- * PROGRAMMER:
- * PROJECT:
+ * PROGRAMMER: Tyler Gee, Cy Iver Torrefranca, Tuan Thanh Nguyen, George S.
+ * PROJECT: SENG2031 - Assignment 1
  * FIRST VERSION: 2025-09-27
  * DESCRIPTION:
+ * The client program collects trip and client data from the user,
+ * then it validates the input, and sends it to the server via a FIFO.
  */
 
 // Include necessary header files for client.c functions and variables
@@ -17,12 +19,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
-
-// Include the shared header file
-#include "shared.h"
-#ifdef __linux__
 #include <regex.h>
-#endif
+
+#include "shared.h"
 
 // Conversion functions
 bool convertToInt(const char *buffer, int *result);
@@ -44,7 +43,7 @@ bool getClientAddress(char *address);
 char *clientToString(const Client *client);
 
 // FIFO Stream Functions
-int writestringToFIFO(const char *fifoname, const char *string);
+int writestringToFIFO(const char *fifoname, const char *string, bool showConnectionMsg);
 
 // Timeout functions
 void timeout_handler(int sig);
@@ -66,11 +65,12 @@ int main(void) {
     bool isValidAge          = false;
     bool isValidAddress      = false;
 
-    printf("Travel Agency Client Input\n");
+    printf("Travel Agency Client\n");
+    printf("Note: Please ensure the server is running before proceeding.\n");
     
     // Set up timeout handler for inactivity
     signal(SIGALRM, timeout_handler);
-    alarm(120); // 2 minutes = 120 seconds
+    alarm(TIMEOUT_DURATION); // 2 minutes = 120 seconds
 
     do {
         // ---------- PARTY / STOP LOOP ----------
@@ -91,7 +91,7 @@ int main(void) {
             continue;
         } else if (quitProgram) {
             // Send stop command to server
-            if (writestringToFIFO(FIFO_PATH, "stop") == -1) {
+            if (writestringToFIFO(FIFO_PATH, "stop", false) == -1) {
                 printf("Error: Failed to write stop command to FIFO\n");
             }
             break;
@@ -110,7 +110,7 @@ int main(void) {
         printf("FIFO pipe ready.\n");
 
         // Write 'party' to FIFO
-        if (writestringToFIFO(FIFO_PATH, buffer) == ERROR) {
+        if (writestringToFIFO(FIFO_PATH, buffer, true) == ERROR) {
             printf("Error: Failed to write to FIFO\n");
             return ERROR;
         }
@@ -120,8 +120,17 @@ int main(void) {
             isValidDestination = getTripDestination(tripIfo.destination);
         } while (!isValidDestination);
 
+        // Check if user wants to stop during destination input
+        if (stringMatchesRegex(tripIfo.destination, MAX_DESTINATION_LEN, "^stop$")) {
+            printf("Stopping the program...\n");
+            if (writestringToFIFO(FIFO_PATH, "stop", false) == SUCCESS) {
+                printf("Sent stop command to server.\n");
+            }
+            break;  // Exit the main loop
+        }
+
         // Write destination to FIFO //
-        if (writestringToFIFO(FIFO_PATH, tripIfo.destination) == ERROR) {
+        if (writestringToFIFO(FIFO_PATH, tripIfo.destination, false) == ERROR) {
             printf("Error: Failed to write to FIFO\n");
             return ERROR;
         }
@@ -153,7 +162,7 @@ int main(void) {
                 
                 // Write "end" signal to indicate party completion
                 // this is just to signal the server that the party is over - cy
-                if (writestringToFIFO(FIFO_PATH, "END_PARTY") == ERROR) {
+                if (writestringToFIFO(FIFO_PATH, "END_PARTY", false) == ERROR) {
                     printf("Error: Failed to write end signal to FIFO\n");
                     return ERROR;
                 }
@@ -178,9 +187,16 @@ int main(void) {
                     = getClientAddress(tripIfo.clients[numberOfClients].address);
             } while (!isValidAddress);
 
-            printf(
-                "Client Entered: %s\n", clientToString(&tripIfo.clients[numberOfClients])
-            );
+            // Display client information in formatted style
+            // Tuan Thanh Nguyen
+            printf("\n-----------------------------\n");
+            printf("Client %d\n", numberOfClients + 1);
+            printf("Name    : %s %s\n", 
+                   tripIfo.clients[numberOfClients].firstName,
+                   tripIfo.clients[numberOfClients].lastName);
+            printf("Age     : %d\n", tripIfo.clients[numberOfClients].age);
+            printf("Address : %s\n", tripIfo.clients[numberOfClients].address);
+            printf("-----------------------------\n\n");
 
             char *clientString = clientToString(&tripIfo.clients[numberOfClients]);
 
@@ -190,7 +206,7 @@ int main(void) {
                 return ERROR;
             } else {
                 // Write client string to FIFO
-                if (writestringToFIFO(FIFO_PATH, clientString) == ERROR) {
+                if (writestringToFIFO(FIFO_PATH, clientString, false) == ERROR) {
                     printf("Error: Failed to write to FIFO\n");
                     return ERROR;
                 }
@@ -217,24 +233,32 @@ int main(void) {
     return SUCCESS;
 }
 
-//
-// FUNCTION : timeout_handler
-// DESCRIPTION : Signal handler for SIGALRM. Terminates the client after timeout.
-// PARAMETERS : int sig - Signal number (SIGALRM)
-// RETURNS : n/a (exits program)
-//
+/*
+
+ * FUNCTION: timeout_handler
+ * PROGRAMMER: Cy Iver Torrefranca
+ * DESCRIPTION:
+    *  Signal handler for SIGALRM. Terminates the client after timeout.
+ * PARAMETERS:
+    *  int sig - Signal number (SIGALRM)
+ * RETURN: 
+    * n/a (exits program)
+
+ */
 void timeout_handler(int sig) {
     (void)sig; // Suppress unused parameter warning
     printf("\n\nClient timeout: No activity for 2 minutes. Terminating client...\n");
     exit(TIMEOUT_SUCCESSFUL);
 }
 
-//
-// FUNCTION : reset_timeout
-// DESCRIPTION : Resets the alarm timer to 2 minutes from current time.
-// PARAMETERS : n/a
-// RETURNS : n/a
-//
+/*
+
+ * FUNCTION: reset_timeout
+ * PROGRAMMER: Cy Iver Torrefranca
+ * DESCRIPTION: Resets the alarm timer to 2 minutes from current time.
+ * PARAMETERS: n/a
+ * RETURN: n/a
+ */
 void reset_timeout(void) {
     alarm(CANCEL_TIMEOUT);   // Cancel current alarm
     alarm(TIMEOUT_DURATION); // Reset to 2 minutes (120 seconds)
@@ -247,16 +271,16 @@ void reset_timeout(void) {
 /* FUNCTION: clearStream
  * PROGRAMMER: Tyler Gee
  * DESCRIPTION:
- *  Clears the input stream until a newline character or EOF is found and
- *  returns the number of characters cleared. Newline characters and EOF are
- *  **NOT** included in the returned count.
- *
+    *  Clears the input stream until a newline character or EOF is found and
+    *  returns the number of characters cleared. Newline characters and EOF are
+    *  **NOT** included in the returned count.
+    *
  * PARAMETERS:
- *  FILE *stream: Pointer to the Stream to clear
- *
+    *  FILE *stream: Pointer to the Stream to clear
+    *
  * RETURN:
- *  int: The number of characters cleared from the stream
- *       (Excluding newline and EOF).
+    *  int: The number of characters cleared from the stream
+    *       (Excluding newline and EOF).
  */
 int clearStream(FILE *stream) {
     int currentChar = 0;
@@ -270,34 +294,34 @@ int clearStream(FILE *stream) {
 /* FUNCTION: getInputFromStream
  * PROGRAMMER: Tyler Gee
  * DESCRIPTION:
- *  Reads a line of text from a stream into the destination buffer.
- *  At most (bufSize - 1) characters are stored before truncation -
- *  automatic null terminator is added.
- *
- *  The newline character at the end of the input line can be kept depending on
- *  the keepNewline flag:
- *      - true:     newline is preserved IF present
- *      - false:    newline is removed IF present
- *
- *  If the input line exceeds (bufSize - 1) bytes, all extra characters
- *  (excluding newline and EOF characters) are discarded. An error code of
- *  ENOBUFS will be returned
- *
- *  **NOTE:** newline and EOF characters left in the stream DO NOT COUNT! No
- *  error code will be thrown if only those characters are left in the stream.
- *
+    *  Reads a line of text from a stream into the destination buffer.
+    *  At most (bufSize - 1) characters are stored before truncation -
+    *  automatic null terminator is added.
+    *
+    *  The newline character at the end of the input line can be kept depending on
+    *  the keepNewline flag:
+    *      - true:     newline is preserved IF present
+    *      - false:    newline is removed IF present
+    *
+    *  If the input line exceeds (bufSize - 1) bytes, all extra characters
+    *  (excluding newline and EOF characters) are discarded. An error code of
+    *  ENOBUFS will be returned
+    *
+    *  **NOTE:** newline and EOF characters left in the stream DO NOT COUNT! No
+    *  error code will be thrown if only those characters are left in the stream.
+    *
  * PARAMETERS:
- *  FILE *stream:       Stream to read from
- *  char *destination:  Pointer to the buffer to store intput string in.
- *  size_t bufSize:     Max Size of buffer **including null terminator **
- *  bool keepNewline:   Flag to keep the newline character at the end
+    *  FILE *stream:       Stream to read from
+    *  char *destination:  Pointer to the buffer to store intput string in.
+    *  size_t bufSize:     Max Size of buffer **including null terminator **
+    *  bool keepNewline:   Flag to keep the newline character at the end
  *
  * RETURN:
- *  EOF(-1):        End-of-file encountered before input. Usually means EOF
- *  0:              Success
- *  EIO(5):         Generic I/O error if no specific errno is set.
- *  EINVAL(22):     Invalid arguments or empty input.
- *  ENOBUFS(105):   Input exceeded buffer size and was discarded.
+    *  EOF(-1):        End-of-file encountered before input. Usually means EOF
+    *  0:              Success
+    *  EIO(5):         Generic I/O error if no specific errno is set.
+    *  EINVAL(22):     Invalid arguments or empty input.
+    *  ENOBUFS(105):   Input exceeded buffer size and was discarded.
  */
 int getInputFromStream(
     FILE *stream, char *destination, size_t bufSize, bool keepNewline
@@ -347,14 +371,14 @@ int getInputFromStream(
 /* FUNCTION: printInputError
  * PROGRAMMER: Tyler Gee
  * DESCRIPTION:
- *  Print an error message based on the common error code received from stream
- *  reading. Error codes are defined in <errno.h>. Response messages are
- *  specific to the fieldName passed using the fieldName parameter.
+    *  Print an error message based on the common error code received from stream
+    *  reading. Error codes are defined in <errno.h>. Response messages are
+    *  specific to the fieldName passed using the fieldName parameter.
  *
  * PARAMETERS:
- *  const char *fieldName: Label for field that the input failed validation from
- *  int errorCode:         Error Code received from stream reading
- *  size_t bufSize:        Used to print Max buffer size in error message
+    *  const char *fieldName: Label for field that the input failed validation from
+    *  int errorCode:         Error Code received from stream reading
+    *  size_t bufSize:        Used to print Max buffer size in error message
  *
  * RETURN: None.
  */
@@ -409,14 +433,16 @@ bool isNullTerminated(const char *buffer, size_t bufSize) {
  * FUNCTION: stringMatchesRegex
  * PROGRAMMER: Tyler Gee
  * DESCRIPTION:
- *
+    *  Using a regex pattern, check if the given string matches the pattern. String
+    *  is null-terminated and does not exceed bufSize bytes.
  * PARAMETERS:
- *  const char *string:
- *  size_t bufSize:         Max size of the buffer in bytes, including the null
- *                          terminator.
- *  const char *pattern:
+    *  const char *string:     The string to match against the pattern.
+    *  size_t bufSize:         Max size of the buffer in bytes, including the null
+    *                          terminator.
+    *  const char *pattern:    The regex pattern to match against.
  * RETURN:
- *
+    *   true: The string matches the pattern.
+    *   false: The string does not match the pattern.
  */
 bool stringMatchesRegex(const char *string, size_t bufSize, const char *pattern) {
     if (!string || !pattern || bufSize <= BUFFER_SIZE_OF_ZERO) {   // invalid input parameters
@@ -432,7 +458,6 @@ bool stringMatchesRegex(const char *string, size_t bufSize, const char *pattern)
         return false;
     }
 
-#ifdef __linux__
     regex_t regex;
 
     // REG_EXTENDED allows  +, *, ^, $, etc.
@@ -445,9 +470,6 @@ bool stringMatchesRegex(const char *string, size_t bufSize, const char *pattern)
     regfree(&regex);   // Free the compiled regular expression.
 
     return result == SUCCESS;
-#else
-    return false;   // No regular expression support on this platform
-#endif
 }
 
 // #####################################################################################################################
@@ -756,13 +778,30 @@ char *clientToString(const Client *client) {
     return clientString;
 }
 
-// FIFO Stream Functions
-int writestringToFIFO(const char *fifoname, const char *string) {
+/*
+ * FUNCTION: writestringToFIFO
+ * PROGRAMMER: Cy Iver Torrefranca
+ * DESCRIPTION:
+    *  Writes a string to a named FIFO stream.
+ * PARAMETERS:
+    *  const char *fifoname: Name of the FIFO to write to.
+    *  const char *string: String to write to the FIFO.
+    *  bool showConnectionMsg: If true, displays "Waiting for server..." and "Connected to server!" messages.
+ * RETURN:
+    *  int: Returns 0 on success, ERROR on failure.
+ */
+int writestringToFIFO(const char *fifoname, const char *string, bool showConnectionMsg) {
     // Open FIFO stream for writing
+    if (showConnectionMsg) {
+        printf("Waiting for server...\n");
+    }
     int fd = open(fifoname, O_WRONLY);
     if (fd == -1) {   // Check for error
         perror("Error opening FIFO stream for writing");
         return ERROR;
+    }
+    if (showConnectionMsg) {
+        printf("Connected to server!\n");
     }
 
     // Write string plus newline to FIFO
@@ -787,5 +826,5 @@ int writestringToFIFO(const char *fifoname, const char *string) {
     printf("Sent to server: %s\n", string);
     free(buffer);
     close(fd);   // close fifo
-    return SUCCESS;        // success
+    return SUCCESS; // success
 }

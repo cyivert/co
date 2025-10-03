@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////////////////////
+// FILE : shared.h
+// PROJECT : SENG2031 - Assignment 1
+// PROGRAMMER : Tyler Gee, Cy Iver Torrefranca, Tuan Thanh Nguyen
+// DESCRIPTION :
+// Shared header file containing common definitions, structs, and function
+//////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef SHARED_H
 #define SHARED_H
 
@@ -22,6 +29,7 @@
 #define MIN_CLIENT_AGE      18
 #define MAX_CLIENT_AGE      125
 #define MAX_CLIENTS         100
+#define MAX_AGE_STR_LEN     8
 
 // Constant return codes
 #define SUCCESS       0
@@ -38,6 +46,9 @@
 #define BUFFER_SIZE_OF_TWO 2
 #define BUFFER_SIZE_OF_THREE 3
 #define BUFFER_SIZE_OF_FOUR 4
+
+// Constants for summary size
+#define SUMMARY_SIZE 512
 
 // Define of Client struct
 typedef struct Client {
