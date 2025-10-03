@@ -6,19 +6,29 @@ SERVER_APPNAME = server
 ################################################################################
 #                              File Structure Linux                            #
 ################################################################################
-SRCDIR = .
-IDIR = .
-OBJDIR = .
-EXECDIR = .
+# 	Source Directory
+SRCDIR	= src
+# 	Dependency Directory
+IDIR    = .
+# 	Object Directory
+OBJDIR  = obj
+# 	Executable Directory
+EXECDIR = bin
 ################################################################################
 #                                 File Names Linux                             #
 ################################################################################
-CLIENT_SRC = client.c
-SERVER_SRC = server.c
-CLIENT_OBJ = client.o
-SERVER_OBJ = server.o
-CLIENT_EXEC = client
-SERVER_EXEC = server
+# Client Source files
+CLIENT_SRC	:= $(SRCDIR)/client.c
+# Server Source files
+SERVER_SRC  := $(SRCDIR)/server.c
+# Client Object files
+CLIENT_OBJ  := $(OBJDIR)/client.o
+# Server Object files
+SERVER_OBJ  := $(OBJDIR)/server.o
+# Client Executable
+CLIENT_EXEC := $(EXECDIR)/client
+# Server Executable
+SERVER_EXEC := $(EXECDIR)/server
 ################################################################################
 #                          C Compiler Settings Linux                           #
 ################################################################################
@@ -31,7 +41,7 @@ CSTANDARD	?= -std=c17
 #  	-Wextra     Give extra warnings
 #  	-Werror		Treat all warnings as errors
 #  	-Wpedantic  Require strict conformance to the ISO C standard
-CFLAGS 		= -Wall -Wextra -Wpedantic -Werror $(CSTANDARD)
+CFLAGS 		= -Wall -Wextra -Wpedantic -Werror $(CSTANDARD) -I$(IDIR)
 ################################################################################
 #                                    Labels                                    #
 ################################################################################
@@ -63,20 +73,28 @@ all: client server
 client: $(CLIENT_EXEC)
 server: $(SERVER_EXEC)
 
-# Compile client source to object file
-$(CLIENT_OBJ): $(CLIENT_SRC)
+# Create /obj and /bin (mkdir -p flag: No error if exists)
+$(OBJDIR) $(EXECDIR):
+	@$(ECHO_MKDIR)
+	@mkdir -p $@
+
+# Compile client.c -> obj/client.o (order-only prerequisite Ensures /obj exists)
+$(CLIENT_OBJ): $(CLIENT_SRC) | $(OBJDIR)
 	@$(ECHO_CLIENT_CC)
 	@$(CC) $(CFLAGS) -c $(CLIENT_SRC) -o $(CLIENT_OBJ)
 
-$(SERVER_OBJ): $(SERVER_SRC)
+# Compile server.c -> obj/server.o (order-only prerequisite Ensures /obj exists)
+$(SERVER_OBJ): $(SERVER_SRC) | $(OBJDIR)
 	@$(ECHO_SERVER_CC)
 	@$(CC) $(CFLAGS) -c $(SERVER_SRC) -o $(SERVER_OBJ)
 
-$(CLIENT_EXEC): $(CLIENT_OBJ)
+# Link client.o → bin/client (order-only prerequisite Ensures /bin exists)
+$(CLIENT_EXEC): $(CLIENT_OBJ) | $(EXECDIR)
 	@$(ECHO_CLIENT_LD)
 	@$(CC) $(CFLAGS) $(CLIENT_OBJ) -o $(CLIENT_EXEC)
 
-$(SERVER_EXEC): $(SERVER_OBJ)
+# Link server.o → bin/server (order-only prerequisite Ensures /bin exists)
+$(SERVER_EXEC): $(SERVER_OBJ) | $(EXECDIR)
 	@$(ECHO_SERVER_LD)
 	@$(CC) $(CFLAGS) $(SERVER_OBJ) -o $(SERVER_EXEC)
 
@@ -96,6 +114,6 @@ run-server: $(SERVER_EXEC)
 # Clean build artifacts
 clean:
 	$(ECHO_CLEAN) Removing build artifacts...
-	rm -f *.o $(CLIENT_EXEC) $(SERVER_EXEC) || true
+	@rm -f $(OBJDIR)/*.o $(CLIENT_EXEC) $(SERVER_EXEC) || true
 	$(ECHO_CLEAN) Clean complete.
 
