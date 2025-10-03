@@ -1,121 +1,117 @@
 ################################################################################
 #                                    Program                                   #
 ################################################################################
-CLIENT_APPNAME = client
-SERVER_APPNAME = server
+# Name of the client executable (without extension)
+CLIENT_APPNAME	= client
+# Name of the server executable (without extension)
+SERVER_APPNAME 	= server
+
 ################################################################################
 #                              File Structure Linux                            #
 ################################################################################
-# 	Source Directory
-SRCDIR	= src
-# 	Dependency Directory
-IDIR    = inc
-# 	Object Directory
-OBJDIR  = obj
-# 	Executable Directory
-EXECDIR = bin
+# Source Directory
+SRCDIR			= src
+# Dependency Directory
+IDIR    		= inc
+# Object Directory
+OBJDIR  		= obj
+# Executable Directory
+EXECDIR 		= bin
+
 ################################################################################
 #                                 File Names Linux                             #
 ################################################################################
+# := Means evaluate immediately not at time of use
 # Client Source files
-CLIENT_SRC	:= $(SRCDIR)/client.c
+CLIENT_SRC		:= $(SRCDIR)/client.c
 # Server Source files
-SERVER_SRC  := $(SRCDIR)/server.c
-# Shared Header file
-SHARED_HDR  := $(IDIR)/shared.h
+SERVER_SRC  	:= $(SRCDIR)/server.c
 # Client Object files
-CLIENT_OBJ  := $(OBJDIR)/client.o
+CLIENT_OBJ  	:= $(OBJDIR)/client.o
 # Server Object files
-SERVER_OBJ  := $(OBJDIR)/server.o
+SERVER_OBJ  	:= $(OBJDIR)/server.o
 # Client Executable
-CLIENT_EXEC := $(EXECDIR)/client
+CLIENT_EXEC 	:= $(EXECDIR)/client
 # Server Executable
-SERVER_EXEC := $(EXECDIR)/server
+SERVER_EXEC 	:= $(EXECDIR)/server
+LOG_FILE		:= travel_agency.log
+FIFO_PIPE		:= travel_agency_fifo
+
 ################################################################################
 #                          C Compiler Settings Linux                           #
 ################################################################################
-# Compiler Options: cc, gcc, clang - Defaults to cc
-CC        	?= cc
-# C Standard Options: -std=c89, -std=c99, -std=c11
-CSTANDARD	?= -std=c17
-# The CFLAGS variables sets compile flags for gcc:
-#  	-Wall		Give Verbose compile warnings
-#  	-Wextra     Give extra warnings
-#  	-Werror		Treat all warnings as errors
-#  	-Wpedantic  Require strict conformance to the ISO C standard
-CFLAGS 		= -Wall -Wextra -Wpedantic -Werror $(CSTANDARD) -I$(IDIR)
-################################################################################
-#                                    Labels                                    #
-################################################################################
-# Padded labels for build output
-LABEL_MKDIR  = [MKDIR]
-LABEL_CC     = [CC   ]
-LABEL_LD     = [LD   ]
-LABEL_RUN    = [RUN  ]
-LABEL_CLEAN  = [CLEAN]
-# Director Creation Labels
-ECHO_MKDIR        = @echo "$(LABEL_MKDIR) Creating directory $@"
-# Compile Labels
-ECHO_CLIENT_CC    = @echo "$(LABEL_CC) client.c -> client.o"
-ECHO_SERVER_CC    = @echo "$(LABEL_CC) server.c -> server.o"
-# Link Labels
-ECHO_CLIENT_LD    = @echo "$(LABEL_LD) client.o -> $(CLIENT_EXEC)"
-ECHO_SERVER_LD    = @echo "$(LABEL_LD) server.o -> $(SERVER_EXEC)"
-# Execution Labels
-ECHO_CLIENT_RUN   = @echo "$(LABEL_RUN) $(CLIENT_EXEC)" && echo ""
-ECHO_SERVER_RUN   = @echo "$(LABEL_RUN) $(SERVER_EXEC)" && echo ""
-# Clean Up Label
-ECHO_CLEAN        = @echo "$(LABEL_CLEAN)"
+# ?= Means default to if not set
+CC        		?= cc
+CSTANDARD		?= -std=c17
+CFLAGS 			:= -Wall -Wextra -Wpedantic -Werror $(CSTANDARD) -I$(IDIR)
+
 ################################################################################
 #                                  Linux Targets                               #
 ################################################################################
-.PHONY: all client server run-client run-server clean
+# Declare phony targets (not real files)
+.PHONY: all client server run-client run-server clean clean-log clean-FIFO distclean
 
+# Default target: build client and server, then run both
 all: client server
+
+# Build client executable and run it
 client: $(CLIENT_EXEC)
+
+# Build server executable and run it
 server: $(SERVER_EXEC)
 
 # Create /obj and /bin (mkdir -p flag: No error if exists)
 $(OBJDIR) $(EXECDIR):
-	@$(ECHO_MKDIR)
+	@echo "Creating directory $@..."
 	@mkdir -p $@
 
-# Compile client.c -> obj/client.o (depends on shared.h, order-only prerequisite Ensures /obj exists)
-$(CLIENT_OBJ): $(CLIENT_SRC) $(SHARED_HDR) | $(OBJDIR)
-	@$(ECHO_CLIENT_CC)
-	@$(CC) $(CFLAGS) -c $(CLIENT_SRC) -o $(CLIENT_OBJ)
+# Compile client.c -> obj/client.o (order-only prerequisite Ensures /obj exists)
+$(CLIENT_OBJ): $(CLIENT_SRC) | $(OBJDIR)
+	$(CC) $(CFLAGS) -c $(CLIENT_SRC) -o $(CLIENT_OBJ)
 
-# Compile server.c -> obj/server.o (depends on shared.h, order-only prerequisite Ensures /obj exists)
-$(SERVER_OBJ): $(SERVER_SRC) $(SHARED_HDR) | $(OBJDIR)
-	@$(ECHO_SERVER_CC)
-	@$(CC) $(CFLAGS) -c $(SERVER_SRC) -o $(SERVER_OBJ)
+# Compile server.c -> obj/server.o (order-only prerequisite Ensures /obj exists)
+$(SERVER_OBJ): $(SERVER_SRC) | $(OBJDIR)
+	$(CC) $(CFLAGS) -c $(SERVER_SRC) -o $(SERVER_OBJ)
 
 # Link client.o → bin/client (order-only prerequisite Ensures /bin exists)
 $(CLIENT_EXEC): $(CLIENT_OBJ) | $(EXECDIR)
-	@$(ECHO_CLIENT_LD)
-	@$(CC) $(CFLAGS) $(CLIENT_OBJ) -o $(CLIENT_EXEC)
+	$(CC) $(CFLAGS) $(CLIENT_OBJ) -o $(CLIENT_EXEC)
 
 # Link server.o → bin/server (order-only prerequisite Ensures /bin exists)
 $(SERVER_EXEC): $(SERVER_OBJ) | $(EXECDIR)
-	@$(ECHO_SERVER_LD)
-	@$(CC) $(CFLAGS) $(SERVER_OBJ) -o $(SERVER_EXEC)
+	$(CC) $(CFLAGS) $(SERVER_OBJ) -o $(SERVER_EXEC)
 
 # Run the client program
 run-client: $(CLIENT_EXEC)
-	@$(ECHO_CLIENT_RUN)
-	@echo "─────────────────── PROGRAM OUTPUT ───────────────────"
-	./$(CLIENT_EXEC)
-	@echo && echo "──────────────────────────────────────────────────────"
+	@echo "Running client..."
+	@./$(CLIENT_EXEC)
 
 # Run the server program
 run-server: $(SERVER_EXEC)
-	@$(ECHO_SERVER_RUN)
-	@echo "─────────────────── PROGRAM OUTPUT ───────────────────"
+	@echo "Running server..."
 	@./$(SERVER_EXEC)
-	@echo && echo "──────────────────────────────────────────────────────"
+	
 # Clean build artifacts
 clean:
-	$(ECHO_CLEAN) Removing build artifacts...
+	@echo "Removing build artifacts..."
 	@rm -f $(OBJDIR)/*.o $(CLIENT_EXEC) $(SERVER_EXEC) || true
-	$(ECHO_CLEAN) Clean complete.
+	@echo "Build artifacts removed successfully."
+
+# Clean log files
+clean-log:
+	@echo "Removing log file..."
+	@rm -f $(LOG_FILE)
+	@echo "All log files removed successfully..."
+
+# Clean FIFO files
+clean-FIFO:
+	@echo "Removing FIFO pipt..."
+	@rm -f $(FIFO_PIPE)
+	@echo "FIFO pipe removed successfully..."
+
+# Clean all generated files
+distclean: clean clean-log clean-FIFO
+	@echo "Removing build directories..."
+	@rm -rf $(OBJDIR) $(EXECDIR)
+	@echo "All build directories removed."
 

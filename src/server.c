@@ -64,6 +64,11 @@ void processMessages(const char *fifoname) {
     
     while (serverRunning) {
         // Open FIFO for reading
+        /*
+        O_RDONLY is a flag that opens the FIFO in read-only mode.
+        If the FIFO does not exist or cannot be opened, open() returns -1 and sets errno.
+        source: https://pubs.opengroup.org/onlinepubs/7908799/xsh/open.html
+        */
         fd = open(fifoname, O_RDONLY);
         if (fd == -1) {
             perror("Error opening FIFO for reading");
