@@ -1,10 +1,11 @@
-///////////////////////////////////////////////////////////////////////////////////////////////
-// FILE : shared.h
-// PROJECT : SENG2031 - Assignment 1
-// PROGRAMMER : Tyler Gee, Cy Iver Torrefranca, Tuan Thanh Nguyen
-// DESCRIPTION :
-// Shared header file containing common definitions, structs, and function
-//////////////////////////////////////////////////////////////////////////////////////////////
+/*
+ * FILE: shared.h
+ * PROGRAMMER: Tyler Gee, Cy Iver Torrefranca, Tuan Thanh Nguyen, George S.
+ * PROJECT: SENG2031 - Assignment 1
+ * DESCRIPTION:
+ * shared.h contains shared definitions, structs, and function declarations
+ * used by both the client and server programs.
+*/
 #ifndef SHARED_H
 #define SHARED_H
 

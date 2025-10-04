@@ -1,11 +1,10 @@
 /*
- * FILE: client.c
+ * FILE: server.c
  * PROGRAMMER: Tyler Gee, Cy Iver Torrefranca, Tuan Thanh Nguyen, George S.
  * PROJECT: SENG2031 - Assignment 1
- * FIRST VERSION: 2025-09-27
  * DESCRIPTION:
- * The client program collects trip and client data from the user,
- * then it validates the input, and sends it to the server via a FIFO.
+ * The server program receives trip and client data from the client via a FIFO,
+ * processes the data, and logs the activities.
 */
 
 #include <fcntl.h>
