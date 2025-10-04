@@ -233,12 +233,13 @@ void timeout_handler(int sig) {
     exit(TIMEOUT_SUCCESSFUL);
 }
 
-//
-// FUNCTION : reset_timeout
-// DESCRIPTION : Resets the alarm timer to 2 minutes from current time.
-// PARAMETERS : n/a
-// RETURNS : n/a
-//
+/*
+ * FUNCTION: reset_timeout
+ * PROGRAMMER: Cy Iver Torrefranca
+ * DESCRIPTION: Resets the alarm timer to 2 minutes from current time.
+ * PARAMETERS: n/a
+ * RETURNS: n/a
+ */
 void reset_timeout(void) {
     alarm(CANCEL_TIMEOUT);   // Cancel current alarm
     alarm(TIMEOUT_DURATION); // Reset to 2 minutes (120 seconds)

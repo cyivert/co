@@ -779,7 +779,7 @@ char *clientToString(const Client *client) {
 
 /*
  * FUNCTION: writestringToFIFO
- * PROGRAMMER: Cy Iver Torrefranca
+ * PROGRAMMER: Tyler Gee & Cy Iver Torrefranca
  * DESCRIPTION:
     *  Writes a string to a named FIFO stream.
  * PARAMETERS:
