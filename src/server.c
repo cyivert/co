@@ -49,7 +49,7 @@ int main(void) {
 
 /*
  * FUNCTION: processMessages
- * PROGRAMMER: Cy Iver Torrefranca & Tuan Thanh Nguyen
+ * PROGRAMMER: Tyler Gee, Cy Iver Torrefranca & Tuan Thanh Nguyen
  * DESCRIPTION:
     *  Processes messages from the FIFO, handling party and client data,
     *  and logging activities to a log file.
